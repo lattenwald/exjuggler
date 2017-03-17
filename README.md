@@ -1,19 +1,21 @@
 # Juggler
 
-**TODO: Add description**
+Telegram bot to prove Elixir superiority to die-hard Python fan.
 
-## Installation
+## Installation & Configuration
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `juggler` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [{:juggler, "~> 0.1.0"}]
-end
+```sh
+$ mix deps.get
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/juggler](https://hexdocs.pm/juggler).
+Set `token` in `config/config.exs` to your bot token.
 
+## Running simple
+
+```sh
+$ iex -S mix
+```
+
+```
+iex> pid = Juggler.Simple.spawn_run()
+```
