@@ -12,6 +12,7 @@ defmodule Juggler.Application do
     children = [
       # Starts a worker by calling: Juggler.Worker.start_link(arg1, arg2, arg3)
       # worker(Juggler.Worker, [arg1, arg2, arg3]),
+      worker(Juggler.Supervised, [], restart: :permanent)
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

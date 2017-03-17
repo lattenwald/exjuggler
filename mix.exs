@@ -17,7 +17,7 @@ defmodule Juggler.Mixfile do
     # Specify extra applications you'll use from Erlang/Elixir
     [
       extra_applications: [:logger],
-      # mod: {Juggler.Application, []}
+      mod: {Juggler.Application, []}
     ]
   end
 
