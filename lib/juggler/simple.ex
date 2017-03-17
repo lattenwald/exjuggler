@@ -31,7 +31,7 @@ defmodule Juggler.Simple do
     Nadia.send_message(chat_id, "ЦЫРК! #{session_id}")
     for thing <- ["левой ногой", "правой рукой", "щупальцами", "тем, что нельзя называть"] do
       :timer.sleep(1000)
-      Nadia.send_message(chat_id, "Жонглирую #{thing}! #{session_id}\n#{Time.utc_now()}")
+      spawn fn -> Nadia.send_message(chat_id, "Жонглирую #{thing}! #{session_id}\n#{Time.utc_now()}") end
     end
   end
 end
