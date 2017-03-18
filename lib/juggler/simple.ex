@@ -17,7 +17,7 @@ defmodule Juggler.Simple do
     run(next_offset)
   end
 
-  def process(upd=%{message: %{text: "/juggle", chat: %{id: chat_id}}}) do
+  def process(upd=%{message: %{text: "/juggle" <> _, chat: %{id: chat_id}}}) do
     Logger.debug "#{inspect upd}"
     spawn(__MODULE__, :juggle, [chat_id])
   end
