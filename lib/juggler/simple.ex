@@ -4,6 +4,7 @@ defmodule Juggler.Simple do
   alias Juggler.Hq
 
   @boss Application.get_env(:juggler, :boss)
+  @bot Application.get_env(:juggler, :bot)
 
   def spawn_run(), do: spawn(__MODULE__, :run, [])
 
@@ -30,7 +31,8 @@ defmodule Juggler.Simple do
     react(:message, chat.id, message)
   end
 
-  def react(:message, chat_id, message=%{text: "/juggle" <> _}) do
+  def react(:message, chat_id, message=%{text: "/juggle" <> rest})
+  when rest in ["", "@#{@bot}"] do
     fuckoff(chat_id, message)
     # spawn(__MODULE__, :juggle, [chat_id])
   end

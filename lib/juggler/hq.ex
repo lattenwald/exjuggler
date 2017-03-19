@@ -1,4 +1,6 @@
 defmodule Juggler.Hq do
+  @bot Application.get_env(:juggler, :bot)
+
   defstruct msg_chat: nil
 
   alias Juggler.Util
@@ -10,7 +12,8 @@ defmodule Juggler.Hq do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
-  def command(chat_id, "/msg") do
+  def command(chat_id, "/msg" <> rest)
+  when rest in ["", "@#{@bot}"] do
     buttons =
       Juggler.Chats.list_chats
       |> Enum.map(fn {_, c} -> [%Nadia.Model.InlineKeyboardButton{text: Util.chat_title(c), callback_data: "msg #{c.id}", url: ""}] end)
@@ -18,7 +21,8 @@ defmodule Juggler.Hq do
     Nadia.send_message(chat_id, "Куда?", reply_markup: %Nadia.Model.InlineKeyboardMarkup{inline_keyboard: buttons})
   end
 
-  def command(chat_id, "/cancel") do
+  def command(chat_id, "/cancel" <> rest)
+  when rest in ["", "@#{@bot}"] do
     GenServer.call(__MODULE__, :cancel)
     Nadia.send_message(chat_id, "Что-то отменили")
   end
