@@ -1,8 +1,6 @@
 defmodule Juggler.Hq do
   @bot Application.get_env(:juggler, :bot)
 
-  defstruct msg_chat: nil
-
   alias Juggler.Util
 
   require Logger
@@ -23,7 +21,7 @@ defmodule Juggler.Hq do
 
   def command(chat_id, "/cancel" <> rest)
   when rest in ["", "@#{@bot}"] do
-    GenServer.call(__MODULE__, :cancel)
+    GenServer.call(__MODULE__, {:cancel, chat_id})
     Nadia.send_message(chat_id, "Что-то отменили")
   end
 
@@ -46,33 +44,39 @@ defmodule Juggler.Hq do
     if chat == nil do
       Nadia.edit_message_text(chat_id, message_id, nil, "Нет такого чата")
     else
-      GenServer.call(__MODULE__, {:message_to, other_chat})
+      GenServer.call(__MODULE__, {:message_to, chat_id, other_chat})
       Nadia.edit_message_text(chat_id, message_id, nil, "Введите сообщение для *#{Util.chat_title(chat)}*", parse_mode: "Markdown")
     end
   end
 
   ############# callbacks
   def init(_) do
-    {:ok, %__MODULE__{}}
+    {:ok, %{}}
   end
 
-  def handle_call({:message_to, other_chat}, _from, state) do
-    {:reply, :ok, %{state | msg_chat: other_chat}}
+  def handle_call({:message_to, chat_id, other_chat}, _from, state) do
+    {:reply, :ok, Map.put(state, chat_id, other_chat)}
   end
 
-  def handle_call({:other_command, _chat_id, _command}, _from, state=%{msg_chat: nil}) do
+  def handle_call({:other_command, chat_id, command}, _from, state) do
+    case state[chat_id] do
+      nil ->
+        {:reply, :ok, state}
+
+      other_chat ->
+        Nadia.send_message(other_chat, command)
+        Nadia.send_message(chat_id, "Отправлено!")
+        {:reply, :ok, Map.delete(state, chat_id)}
+    end
+  end
+
+  def handle_call({:other_command, _chat_id, _command}, _from, state) do
     # Logger.debug "Unsupported command: #{command}"
     {:reply, :ok, state}
   end
 
-  def handle_call({:other_command, chat_id, command}, _from, state=%{msg_chat: other_chat}) do
-    Nadia.send_message(other_chat, command)
-    Nadia.send_message(chat_id, "Отправлено!")
-    {:reply, :ok, %{state | msg_chat: nil}}
-  end
-
-  def handle_call(:cancel, _from, _state) do
-    {:reply, :ok, %__MODULE__{}}
+  def handle_call({:cancel, chat_id}, _from, state) do
+    {:reply, :ok, Map.delete(state, chat_id)}
   end
 
 end
