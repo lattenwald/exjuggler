@@ -30,4 +30,14 @@ use Mix.Config
 #     import_config "#{Mix.env}.exs"
 
 config :nadia,
-  token: "sometoken"
+  token: "bot token"
+
+config :juggler,
+  boss: "boss username",
+  bot: "bot username"
+
+try do
+  import_config "secret.exs"
+catch
+  _, _ -> :missing
+end
