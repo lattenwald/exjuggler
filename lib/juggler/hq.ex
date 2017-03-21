@@ -12,17 +12,30 @@ defmodule Juggler.Hq do
 
   def command(chat_id, "/msg" <> rest)
   when rest in ["", "@#{@bot}"] do
-    buttons =
-      Juggler.Chats.list_chats
-      |> Enum.map(fn {_, c} -> [%Nadia.Model.InlineKeyboardButton{text: Util.chat_title(c), callback_data: "msg #{c.id}", url: ""}] end)
+    case Juggler.Chats.list_chats do
+      [] ->
+        Nadia.send_message(chat_id, "Некуда слать-то.")
 
-    Nadia.send_message(chat_id, "Куда?", reply_markup: %Nadia.Model.InlineKeyboardMarkup{inline_keyboard: buttons})
+      chats ->
+        prepare_message_to_chat(chat_id)
+
+        buttons =
+          chats
+          |> Enum.map(fn {_, c} -> [%Nadia.Model.InlineKeyboardButton{text: Util.chat_title(c), callback_data: "msg #{c.id}", url: ""}] end)
+
+        Nadia.send_message(chat_id, "Куда?", reply_markup: %Nadia.Model.InlineKeyboardMarkup{inline_keyboard: buttons})
+    end
   end
 
   def command(chat_id, "/cancel" <> rest)
   when rest in ["", "@#{@bot}"] do
-    GenServer.call(__MODULE__, {:cancel, chat_id})
-    Nadia.send_message(chat_id, "Что-то отменили")
+    case GenServer.call(__MODULE__, {:cancel, chat_id}) do
+      :none -> :ok
+      nil   -> Nadia.send_message(chat_id, "Выбор чата отменён")
+      other ->
+        chat = Juggler.Chats.get_chat(other)
+        Nadia.send_message(chat_id, "Закончили писать в *#{Util.chat_title(chat)}*", parse_mode: "Markdown")
+    end
   end
 
   def command(chat_id, command) do
@@ -44,9 +57,18 @@ defmodule Juggler.Hq do
     if chat == nil do
       Nadia.edit_message_text(chat_id, message_id, nil, "Нет такого чата")
     else
-      GenServer.call(__MODULE__, {:message_to, chat_id, other_chat})
-      Nadia.edit_message_text(chat_id, message_id, nil, "Введите сообщение для *#{Util.chat_title(chat)}*", parse_mode: "Markdown")
+      case GenServer.call(__MODULE__, {:message_to, chat_id, other_chat}) do
+        :ok ->
+          Nadia.edit_message_text(chat_id, message_id, nil, "Введите сообщение для *#{Util.chat_title(chat)}*", parse_mode: "Markdown")
+
+        :error ->
+          Nadia.edit_message_text(chat_id, message_id, nil, "Похоже, это предложение устарело")
+      end
     end
+  end
+
+  def prepare_message_to_chat(chat_id) do
+    GenServer.call(__MODULE__, {:prepare_message_to, chat_id})
   end
 
   ############# callbacks
@@ -55,28 +77,39 @@ defmodule Juggler.Hq do
   end
 
   def handle_call({:message_to, chat_id, other_chat}, _from, state) do
-    {:reply, :ok, Map.put(state, chat_id, other_chat)}
-  end
+    case Map.fetch(state, chat_id) do
+      {:ok, _} ->
+        {:reply, :ok, Map.put(state, chat_id, other_chat)}
 
-  def handle_call({:other_command, chat_id, command}, _from, state) do
-    case state[chat_id] do
-      nil ->
-        {:reply, :ok, state}
-
-      other_chat ->
-        Nadia.send_message(other_chat, command)
-        Nadia.send_message(chat_id, "Отправлено!")
-        {:reply, :ok, Map.delete(state, chat_id)}
+      :error ->
+        {:reply, :ready, state}
     end
   end
 
-  def handle_call({:other_command, _chat_id, _command}, _from, state) do
-    # Logger.debug "Unsupported command: #{command}"
-    {:reply, :ok, state}
+  def handle_call({:prepare_message_to, chat_id}, _from, state) do
+    {:reply, :ok, Map.put(state, chat_id, nil)}
+  end
+
+  def handle_call({:other_command, chat_id, command}, _from, state) do
+    case Map.fetch(state, chat_id) do
+      :error ->
+        # Logger.debug "Unsupported command: #{command}"
+        {:reply, :ok, state}
+
+      {:ok, nil} ->
+        Nadia.send_message(chat_id, "Кому-кому?")
+        {:reply, :ok, state}
+
+      {:ok, other_chat} ->
+        Nadia.send_message(other_chat, command)
+        Nadia.send_message(chat_id, "Отправлено! Ещё что-нибудь?")
+        {:reply, :ok, state}
+    end
   end
 
   def handle_call({:cancel, chat_id}, _from, state) do
-    {:reply, :ok, Map.delete(state, chat_id)}
+    {val, new_state} = Map.pop(state, chat_id, :none)
+    {:reply, val, new_state}
   end
 
 end
