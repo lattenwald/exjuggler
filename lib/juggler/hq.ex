@@ -21,10 +21,11 @@ defmodule Juggler.Hq do
 
         buttons =
           chats
-          |> Enum.map(fn {_, c} -> [%Nadia.Model.InlineKeyboardButton{text: Util.chat_title(c), callback_data: "msg #{c.id}", url: ""}] end)
+          |> Enum.map(fn c -> [%Nadia.Model.InlineKeyboardButton{text: Util.chat_title(c), callback_data: "msg #{c.id}", url: ""}] end)
 
         Nadia.send_message(chat_id, "Куда?", reply_markup: %Nadia.Model.InlineKeyboardMarkup{inline_keyboard: buttons})
     end
+    :ok
   end
 
   def command(chat_id, "/cancel" <> rest)
@@ -36,6 +37,7 @@ defmodule Juggler.Hq do
         chat = Juggler.Chats.get_chat(other)
         Nadia.send_message(chat_id, "Закончили писать в *#{Util.chat_title(chat)}*", parse_mode: "Markdown")
     end
+    :ok
   end
 
   def command(chat_id, command) do
@@ -71,6 +73,13 @@ defmodule Juggler.Hq do
     GenServer.call(__MODULE__, {:prepare_message_to, chat_id})
   end
 
+  def forward_to_relevant(chat_id, message) do
+    Logger.debug "forward_to_relevant from #{inspect chat_id}"
+    GenServer.call(__MODULE__, {:forward_to_relevant, chat_id, message})
+  end
+
+  def get_state(), do: GenServer.call(__MODULE__, :get_state)
+
   ############# callbacks
   def init(_) do
     {:ok, %{}}
@@ -94,15 +103,20 @@ defmodule Juggler.Hq do
     case Map.fetch(state, chat_id) do
       :error ->
         # Logger.debug "Unsupported command: #{command}"
-        {:reply, :ok, state}
+        {:reply, :no_command, state}
 
       {:ok, nil} ->
         Nadia.send_message(chat_id, "Кому-кому?")
         {:reply, :ok, state}
 
-      {:ok, other_chat} ->
-        Nadia.send_message(other_chat, command)
-        Nadia.send_message(chat_id, "Отправлено! Ещё что-нибудь?")
+      {:ok, other_chat_id} ->
+        other_chat = Juggler.Chats.get_chat(other_chat_id)
+        Nadia.send_message(other_chat_id, command)
+        Nadia.send_message(
+          chat_id,
+          "Отправлено в *#{Juggler.Util.chat_title(other_chat)}*! Ещё что-нибудь?",
+          parse_mode: "Markdown"
+        )
         {:reply, :ok, state}
     end
   end
@@ -111,5 +125,18 @@ defmodule Juggler.Hq do
     {val, new_state} = Map.pop(state, chat_id, :none)
     {:reply, val, new_state}
   end
+
+  def handle_call({:forward_to_relevant, chat_id, %{message_id: message_id}}, _from, state) do
+    relevant_chats =
+      state
+      |> Stream.filter(fn {_from, to} -> to == chat_id end)
+      |> Enum.map(fn {from, _to} -> from end)
+
+    for c <- relevant_chats, do: Nadia.forward_message(c, chat_id, message_id)
+
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:get_state, _from, state), do: {:reply, state, state}
 
 end

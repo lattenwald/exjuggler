@@ -28,18 +28,32 @@ defmodule Juggler.Simple do
 
   def process(%{message: message=%{chat: chat}}) do
     Juggler.Chats.add_chat(chat)
+    Logger.debug "#{inspect message}"
     react(:message, chat.id, message)
   end
 
-  def react(:message, chat_id, message=%{text: "/juggle" <> rest})
+  def react(:message, chat_id, _message=%{text: "/juggle" <> rest})
   when rest in ["", "@#{@bot}"] do
-    fuckoff(chat_id, message)
-    # spawn(__MODULE__, :juggle, [chat_id])
+    # fuckoff(chat_id, message)
+    spawn(__MODULE__, :juggle, [chat_id])
   end
 
   # def react(:message, chat_id, %{chat: %{type: "private", username: @boss}, text: text}) do
-  def react(:message, chat_id, %{from: %{username: @boss}, text: text}) do
+  def react(:message, chat_id, message=%{from: %{username: @boss}, text: text}) do
     Hq.command(chat_id, text)
+    |> case do
+         :ok -> :ok
+         :no_command -> Hq.forward_to_relevant(chat_id, message)
+       end
+  end
+
+  def react(:message, chat_id, message=%{chat: %{type: "private", username: username}})
+  when username != @boss do
+    Hq.forward_to_relevant(chat_id, message)
+  end
+
+  def react(:message, chat_id, message) do
+    Hq.forward_to_relevant(chat_id, message) |> inspect |> Logger.debug
   end
 
   # def react(:callback_query, chat_id, query=%{message: %{chat: %{type: "private", username: @boss}}, data: data}) do
@@ -68,6 +82,7 @@ defmodule Juggler.Simple do
       spawn fn -> Nadia.send_message(chat_id, "Жонглирую #{thing}! #{session_id}\n#{Time.utc_now()}") end
     end
   end
+
 end
 
 
