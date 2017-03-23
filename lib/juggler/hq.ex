@@ -14,7 +14,7 @@ defmodule Juggler.Hq do
   when rest in ["", "@#{@bot}"] do
     case Juggler.Chats.list_chats do
       [] ->
-        Nadia.send_message(chat_id, "Некуда слать-то.")
+        Nadia.send_message(chat_id, "Некуда слать-то.", disable_notification: true)
 
       chats ->
         prepare_message_to_chat(chat_id)
@@ -23,7 +23,7 @@ defmodule Juggler.Hq do
           chats
           |> Enum.map(fn c -> [%Nadia.Model.InlineKeyboardButton{text: Util.chat_title(c), callback_data: "msg #{c.id}", url: ""}] end)
 
-        Nadia.send_message(chat_id, "Куда?", reply_markup: %Nadia.Model.InlineKeyboardMarkup{inline_keyboard: buttons})
+        Nadia.send_message(chat_id, "Куда?", reply_markup: %Nadia.Model.InlineKeyboardMarkup{inline_keyboard: buttons}, disable_notification: true)
     end
     :ok
   end
@@ -32,10 +32,10 @@ defmodule Juggler.Hq do
   when rest in ["", "@#{@bot}"] do
     case GenServer.call(__MODULE__, {:cancel, chat_id}) do
       :none -> :ok
-      nil   -> Nadia.send_message(chat_id, "Выбор чата отменён")
+      nil   -> Nadia.send_message(chat_id, "Выбор чата отменён", disable_notification: true)
       other ->
         chat = Juggler.Chats.get_chat(other)
-        Nadia.send_message(chat_id, "Закончили писать в *#{Util.chat_title(chat)}*", parse_mode: "Markdown")
+        Nadia.send_message(chat_id, "Закончили писать в *#{Util.chat_title(chat)}*", parse_mode: "Markdown", disable_notification: true)
     end
     :ok
   end
@@ -106,16 +106,17 @@ defmodule Juggler.Hq do
         {:reply, :no_command, state}
 
       {:ok, nil} ->
-        Nadia.send_message(chat_id, "Кому-кому?")
+        Nadia.send_message(chat_id, "Кому-кому?", disable_notification: true)
         {:reply, :ok, state}
 
       {:ok, other_chat_id} ->
         other_chat = Juggler.Chats.get_chat(other_chat_id)
-        Nadia.send_message(other_chat_id, command)
+        Nadia.send_message(other_chat_id, command, disable_notification: true)
         Nadia.send_message(
           chat_id,
           "Отправлено в *#{Juggler.Util.chat_title(other_chat)}*! Ещё что-нибудь?",
-          parse_mode: "Markdown"
+          parse_mode: "Markdown",
+          disable_notification: true
         )
         {:reply, :ok, state}
     end

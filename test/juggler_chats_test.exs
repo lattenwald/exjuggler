@@ -18,6 +18,7 @@ defmodule JugglerChatsTest do
       first_name: "test fname", last_name: "test lname"
     }
 
+    assert Juggler.Chats.list_chats == []
     assert Juggler.Chats.add_chat(chat) == :ok
     assert Juggler.Chats.list_chats == [chat]
     assert Juggler.Chats.get_chat(1) == chat

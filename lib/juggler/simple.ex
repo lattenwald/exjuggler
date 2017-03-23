@@ -72,7 +72,7 @@ defmodule Juggler.Simple do
   end
 
   def fuckoff(chat_id, %{from: %{first_name: fname, username: uname}}) do
-    Nadia.send_message(chat_id, "Отвали, #{fname || uname}", disable_notification: :true)
+    Nadia.send_message(chat_id, "Отвали, #{fname || uname}", disable_notification: true)
   end
 
   def juggle(chat_id) do
