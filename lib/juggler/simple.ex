@@ -4,6 +4,7 @@ defmodule Juggler.Simple do
   alias Juggler.Hq
 
   @boss Application.get_env(:juggler, :boss)
+  @authorized [@boss | Application.get_env(:juggler, :authorized, [])]
   @bot Application.get_env(:juggler, :bot)
 
   def spawn_run(), do: spawn(__MODULE__, :run, [])
@@ -38,8 +39,8 @@ defmodule Juggler.Simple do
     spawn(__MODULE__, :juggle, [chat_id])
   end
 
-  # def react(:message, chat_id, %{chat: %{type: "private", username: @boss}, text: text}) do
-  def react(:message, chat_id, message=%{from: %{username: @boss}, text: text}) do
+  def react(:message, chat_id, message=%{from: %{username: username}, text: text})
+  when username in @authorized do
     Hq.command(chat_id, text)
     |> case do
          :ok -> :ok
@@ -48,7 +49,7 @@ defmodule Juggler.Simple do
   end
 
   def react(:message, chat_id, message=%{chat: %{type: "private", username: username}})
-  when username != @boss do
+  when not username in @authorized do
     Hq.forward_to_relevant(chat_id, message)
   end
 
@@ -56,8 +57,8 @@ defmodule Juggler.Simple do
     Hq.forward_to_relevant(chat_id, message) |> inspect |> Logger.debug
   end
 
-  # def react(:callback_query, chat_id, query=%{message: %{chat: %{type: "private", username: @boss}}, data: data}) do
-  def react(:callback_query, chat_id, query=%{from: %{username: @boss}, data: data}) do
+  def react(:callback_query, chat_id, query=%{from: %{username: username}, data: data})
+  when username in @authorized do
     Nadia.answer_callback_query(query.id, text: "Так-так-так...")
     Hq.command_callback_query(chat_id, data, query)
   end
