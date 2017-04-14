@@ -41,7 +41,7 @@ defmodule Juggler.Simple do
 
   def react(:message, chat_id, _message=%{text: "/version" <> rest})
   when rest in ["", "@#{@bot}"] do
-    Nadia.send_message(chat_id, Application.spec(:qtg)[:vsn], disable_notification: true)
+    Nadia.send_message(chat_id, Application.spec(:juggler)[:vsn], disable_notification: true)
   end
 
   def react(:message, chat_id, message=%{from: %{username: username}, text: text})
