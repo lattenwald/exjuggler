@@ -58,4 +58,6 @@ defmodule Juggler.Chats do
     {:reply, chat, table}
   end
 
+  def terminate(_reason, table), do: :dets.close(table)
+
 end

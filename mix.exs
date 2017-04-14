@@ -16,7 +16,7 @@ defmodule Juggler.Mixfile do
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :edeliver, :runtime_tools],
       mod: {Juggler.Application, []}
     ]
   end
@@ -33,6 +33,8 @@ defmodule Juggler.Mixfile do
   defp deps do
     [
       {:nadia, "~> 0.4.2"},
+      {:distillery, "~> 1.3"},
+      {:edeliver, github: "lattenwald/edeliver"},
     ]
   end
 end

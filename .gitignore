@@ -24,3 +24,6 @@ erl_crash.dump
 *.bak
 /config/*secret.exs
 /chats*
+/.deliver/releases
+/rsync.exclude
+/rsync.sh

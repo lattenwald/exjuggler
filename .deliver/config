@@ -1,0 +1,28 @@
+# -*- mode: shell-script -*-
+
+APP="juggler"
+
+AUTO_VERSION="git-branch-unless-master+build-date+git-revision"
+
+BUILD_HOST="ub"
+BUILD_USER="erlbuild"
+BUILD_AT="/home/$BUILD_USER/edeliver/$APP/builds"
+
+RELEASE_DIR="$BUILD_AT/_build/$TARGET_MIX_ENV/rel/$APP"
+
+STAGING_HOSTS="ub"
+STAGING_USER="erl"
+TEST_AT="/home/$STAGING_USER/edeliver_staging/$APP"
+
+PRODUCTION_HOSTS="ub"
+PRODUCTION_USER="erl"
+DELIVER_TO="/home/erl"
+
+pre_erlang_get_and_update_deps() {
+  local _prod_secret_path="/home/erlbuild/secrets/juggler.secret.exs"
+  if [ "$TARGET_MIX_ENV" = "prod" ]; then
+    __sync_remote "
+      ln -sfn '$_prod_secret_path' '$BUILD_AT/config/secret.exs'
+    "
+  fi
+}
