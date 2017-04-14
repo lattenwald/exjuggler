@@ -18,7 +18,7 @@ defmodule Juggler.Simple do
         upd -> upd.update_id + 1
       end
 
-    if offset > 0, do: Enum.map(updates, &process(&1))
+    updates |> Enum.map(&process(&1))
 
     run(next_offset)
   end
@@ -37,6 +37,11 @@ defmodule Juggler.Simple do
   when rest in ["", "@#{@bot}"] do
     # fuckoff(chat_id, message)
     spawn(__MODULE__, :juggle, [chat_id])
+  end
+
+  def react(:message, chat_id, _message=%{text: "/version" <> rest})
+  when rest in ["", "@#{@bot}"] do
+    Nadia.send_message(chat_id, Application.spec(:qtg)[:vsn], disable_notification: true)
   end
 
   def react(:message, chat_id, message=%{from: %{username: username}, text: text})
