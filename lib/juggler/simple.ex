@@ -33,6 +33,10 @@ defmodule Juggler.Simple do
     react(:message, chat.id, message)
   end
 
+  def process(upd) do
+    Logger.debug "not processing update: #{inspect upd}"
+  end
+
   def react(:message, chat_id, _message=%{text: "/juggle" <> rest})
   when rest in ["", "@#{@bot}"] do
     # fuckoff(chat_id, message)
