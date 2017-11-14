@@ -48,6 +48,21 @@ defmodule Juggler.Simple do
     Nadia.send_message(chat_id, Application.spec(:juggler)[:vsn], disable_notification: true)
   end
 
+  def react(:message, chat_id,
+	message=%{pinned_message: %{chat: %{title: chat_title},
+								from: pinned_user,
+								message_id: message_id,
+								text: text},
+			  from: pinning_user}
+  ) do
+	format_user = fn
+	  %{username: username} -> "@#{username}"
+	  (%{firstname: firstname}) -> "*#{firstname}*"
+	end
+
+	Hq.notify_boss "#{format_user.(pinning_user)} pinned message from #{format_user.(pinned_user)} at *#{chat_title}*\n\n#{text}"
+  end
+
   def react(:message, chat_id, message=%{from: %{username: username}, text: text})
   when username in @authorized do
     Hq.command(chat_id, text)

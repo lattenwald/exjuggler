@@ -1,5 +1,6 @@
 defmodule Juggler.Hq do
-  @bot Application.get_env(:juggler, :bot)
+  @bot Application.fetch_env!(:juggler, :bot)
+  @boss_chat_id Application.fetch_env!(:juggler, :boss_chat_id)
 
   alias Juggler.Util
 
@@ -76,6 +77,10 @@ defmodule Juggler.Hq do
   def forward_to_relevant(chat_id, message) do
     Logger.debug "forward_to_relevant from #{inspect chat_id}"
     GenServer.call(__MODULE__, {:forward_to_relevant, chat_id, message})
+  end
+
+  def notify_boss(message) do
+	Nadia.send_message(@boss_chat_id, message, parse_mode: "Markdown")
   end
 
   def get_state(), do: GenServer.call(__MODULE__, :get_state)
