@@ -11,16 +11,6 @@ defmodule Juggler.Hq do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
-  def command(chat_id, msg_id, "/id" <> rest)
-      when rest in ["", "@#{@bot}"] do
-    Nadia.send_message(
-      chat_id,
-      "#{chat_id}",
-      reply_to_message_id: msg_id,
-      disable_notification: true
-    )
-  end
-
   def command(chat_id, msg_id, "/msg" <> rest)
       when rest in ["", "@#{@bot}"] do
     case Juggler.Chats.list_chats() do
