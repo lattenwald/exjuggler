@@ -10,17 +10,20 @@ defmodule Juggler.Simple do
   def spawn_run(), do: spawn(__MODULE__, :run, [])
 
   def run(offset \\ 0) do
-    {:ok, updates} = Nadia.get_updates(offset: offset)
+    with {:ok, updates} <- Nadia.get_updates(offset: offset) do
+      next_offset =
+        case List.last(updates) do
+          nil -> offset
+          upd -> upd.update_id + 1
+        end
 
-    next_offset =
-      case List.last(updates) do
-        nil -> offset
-        upd -> upd.update_id + 1
-      end
-
-    updates |> Enum.map(&process(&1))
-
-    run(next_offset)
+      updates |> Enum.map(&process(&1))
+      run(next_offset)
+    else
+      {:error, %Nadia.Model.Error{reason: :timeout}} ->
+        Logger.warn("got timeout")
+        run(offset)
+    end
   end
 
   def process(%{callback_query: query = %{message: %{chat: chat}}}) do
@@ -37,15 +40,20 @@ defmodule Juggler.Simple do
     Logger.debug("not processing update: #{inspect(upd)}")
   end
 
-  def react(:message, chat_id, _message = %{text: "/juggle" <> rest})
+  def react(:message, chat_id, _message = %{message_id: msg_id, text: "/juggle" <> rest})
       when rest in ["", "@#{@bot}"] do
     # fuckoff(chat_id, message)
-    spawn(__MODULE__, :juggle, [chat_id])
+    spawn(__MODULE__, :juggle, [chat_id, msg_id])
   end
 
-  def react(:message, chat_id, _message = %{text: "/version" <> rest})
+  def react(:message, chat_id, _message = %{message_id: msg_id, text: "/version" <> rest})
       when rest in ["", "@#{@bot}"] do
-    Nadia.send_message(chat_id, Application.spec(:juggler)[:vsn], disable_notification: true)
+    Nadia.send_message(
+      chat_id,
+      Application.spec(:juggler)[:vsn],
+      reply_to_message_id: msg_id,
+      disable_notification: true
+    )
   end
 
   def react(:message, chat_id, _message = %{message_id: msg_id, text: "/id" <> rest})
@@ -61,12 +69,12 @@ defmodule Juggler.Simple do
 
   def react(
         :message,
-        chat_id,
-        message = %{
+        _chat_id,
+        _message = %{
           pinned_message: %{
             chat: %{title: chat_title},
             from: pinned_user,
-            message_id: message_id,
+            message_id: _message_id,
             text: text
           },
           from: pinning_user
@@ -84,7 +92,11 @@ defmodule Juggler.Simple do
     )
   end
 
-  def react(:message, chat_id, message = %{message_id: msg_id, from: %{username: username}, text: text})
+  def react(
+        :message,
+        chat_id,
+        message = %{message_id: msg_id, from: %{username: username}, text: text}
+      )
       when username in @authorized do
     Hq.command(chat_id, msg_id, text)
     |> case do
@@ -120,7 +132,7 @@ defmodule Juggler.Simple do
     Nadia.send_message(chat_id, "Отвали, #{fname || uname}", disable_notification: true)
   end
 
-  def juggle(chat_id) do
+  def juggle(chat_id, msg_id) do
     session_id = "J#{Enum.random(1..10000)}"
     Nadia.send_message(chat_id, "ЦЫРК! #{session_id}")
 
@@ -128,7 +140,11 @@ defmodule Juggler.Simple do
       :timer.sleep(1000)
 
       spawn(fn ->
-        Nadia.send_message(chat_id, "Жонглирую #{thing}! #{session_id}\n#{Time.utc_now()}")
+        Nadia.send_message(
+          chat_id,
+          "Жонглирую #{thing}! #{session_id}\n#{Time.utc_now()}",
+          reply_to_message_id: msg_id
+        )
       end)
     end
   end
