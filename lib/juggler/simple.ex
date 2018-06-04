@@ -48,7 +48,7 @@ defmodule Juggler.Simple do
     Nadia.send_message(chat_id, Application.spec(:juggler)[:vsn], disable_notification: true)
   end
 
-  def react(:message, chat_id, _message = %{id: msg_id, text: "/id" <> rest})
+  def react(:message, chat_id, _message = %{message_id: msg_id, text: "/id" <> rest})
       when rest in ["", "@#{@bot}"] do
     Nadia.send_message(
       chat_id,
@@ -84,7 +84,7 @@ defmodule Juggler.Simple do
     )
   end
 
-  def react(:message, chat_id, message = %{id: msg_id, from: %{username: username}, text: text})
+  def react(:message, chat_id, message = %{message_id: msg_id, from: %{username: username}, text: text})
       when username in @authorized do
     Hq.command(chat_id, msg_id, text)
     |> case do
