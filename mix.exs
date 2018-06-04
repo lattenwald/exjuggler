@@ -32,8 +32,8 @@ defmodule Juggler.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:nadia, "~> 0.4.2"},
-      {:distillery, "~> 1.3"},
+      {:nadia, "~> 0.4.3"},
+      {:distillery, "~> 1.5"},
       {:edeliver, github: "lattenwald/edeliver"},
     ]
   end
