@@ -86,7 +86,7 @@ defmodule Juggler.Hq do
     :ok
   end
 
-  def command(chat_id, _msg_id, command) do
+  def command(chat_id, msg_id, command) do
     GenServer.call(__MODULE__, {:other_command, chat_id, msg_id, command})
   end
 
