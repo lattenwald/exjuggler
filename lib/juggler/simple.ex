@@ -23,6 +23,10 @@ defmodule Juggler.Simple do
       {:error, %Nadia.Model.Error{reason: :timeout}} ->
         Logger.warn("got timeout")
         run(offset)
+
+      other ->
+        Logger.error("unknown get_updates error: #{inspect(other)}")
+        run(offset)
     end
   end
 

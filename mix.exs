@@ -3,8 +3,8 @@ defmodule Juggler.Mixfile do
 
   def project do
     [app: :juggler,
-     version: "0.1.5",
-     elixir: "~> 1.4",
+     version: "0.1.6",
+     elixir: "~> 1.7",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps()]
@@ -32,9 +32,10 @@ defmodule Juggler.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:nadia, "~> 0.4.3"},
-      {:distillery, "~> 1.5"},
-      {:edeliver, github: "lattenwald/edeliver"},
+      {:nadia, "~> 0.4.4"},
+      {:distillery, "~> 2.0"},
+      {:edeliver, "~> 1.6"}
+      # {:edeliver, github: "lattenwald/edeliver"},
     ]
   end
 end
