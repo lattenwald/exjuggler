@@ -109,11 +109,14 @@ defmodule Juggler.Simple do
             file_name: file_name,
             file_size: file_size,
             mime_type: file_type
-          }
+          },
+          forward_from: from,
+          chat: chat
         }
       )
       when file_type in ["audio/x-wav", "audio/mpeg"] do
-    spawn(__MODULE__, :convert_audio, [chat_id, msg_id, file_id, file_name])
+    from = from || chat
+    spawn(__MODULE__, :convert_audio, [chat_id, msg_id, file_id, file_name, from])
   end
 
   def react(
@@ -173,7 +176,7 @@ defmodule Juggler.Simple do
     end
   end
 
-  def convert_audio(chat_id, msg_id, file_id, file_name) do
+  def convert_audio(chat_id, msg_id, file_id, file_name, from) do
     Logger.info("converting audio file: #{file_name}")
 
     with {:ok, file} <- Nadia.get_file(file_id),
@@ -203,11 +206,25 @@ defmodule Juggler.Simple do
            |> add_stream_option(option_codec("libmp3lame"))
            |> add_stream_option(option_qscale("3")),
          :ok <- execute(convert_command) do
+      title = Path.basename(file_name, Path.extname(file_name))
+
+      performer =
+        case from do
+          nil ->
+            "Unknown"
+
+          %{first_name: first_name, last_name: last_name, username: username} ->
+            [first_name, last_name, map_not_nil(username, &"@#{&1}")]
+            |> Enum.filter(&(not is_nil(&1)))
+            |> Enum.join(" ")
+        end
+
       Nadia.send_audio(
         chat_id,
         output_file,
         reply_to_message_id: msg_id,
-        title: "Converted from `#{file_name}`",
+        title: title,
+        performer: performer,
         parse_mode: "Markdown"
       )
     else
@@ -224,4 +241,8 @@ defmodule Juggler.Simple do
         )
     end
   end
+
+  ## helpers
+  def map_not_nil(nil, fun), do: nil
+  def map_not_nil(other, fun), do: fun.(other)
 end
