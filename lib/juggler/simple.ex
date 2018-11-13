@@ -1,6 +1,9 @@
 defmodule Juggler.Simple do
   require Logger
 
+  import FFmpex
+  use FFmpex.Options
+
   alias Juggler.Hq
 
   @boss Application.get_env(:juggler, :boss)
@@ -99,6 +102,23 @@ defmodule Juggler.Simple do
   def react(
         :message,
         chat_id,
+        _message = %{
+          message_id: msg_id,
+          document: %{
+            file_id: file_id,
+            file_name: file_name,
+            file_size: file_size,
+            mime_type: file_type
+          }
+        }
+      )
+      when file_type in ["audio/x-wav", "audio/mpeg"] do
+    spawn(__MODULE__, :convert_audio, [chat_id, msg_id, file_id, file_name])
+  end
+
+  def react(
+        :message,
+        chat_id,
         message = %{message_id: msg_id, from: %{username: username}, text: text}
       )
       when username in @authorized do
@@ -152,8 +172,56 @@ defmodule Juggler.Simple do
       end)
     end
   end
+
+  def convert_audio(chat_id, msg_id, file_id, file_name) do
+    Logger.info("converting audio file: #{file_name}")
+
+    with {:ok, file} <- Nadia.get_file(file_id),
+         {:ok, file_link} <- Nadia.get_file_link(file),
+         {:ok, dir} <- Briefly.create(directory: true),
+         {:ok, file_path} <- Download.from(file_link, path: Path.join(dir, file_name)),
+         detect_command <-
+           new_command()
+           |> add_input_file(file_path)
+           |> add_output_file("/dev/null")
+           |> add_stream_specifier(stream_type: :audio)
+           |> add_stream_option(option_f("null"))
+           |> add_stream_option(option_filter("volumedetect")),
+         {cmd, opts} <- prepare(detect_command),
+         %{status: 0, out: out} <- Porcelain.exec(cmd, opts, err: :out),
+         %{"max_vol" => max_vol} <-
+           Regex.named_captures(~r{max_volume: (?<max_vol>[-.\d]+) dB}, out),
+         {max_vol, ""} <- Float.parse(max_vol),
+         output_file <- Path.rootname(file_path) <> ".mp3",
+         norm_vol = -max_vol,
+         convert_command <-
+           new_command()
+           |> add_input_file(file_path)
+           |> add_output_file(output_file)
+           |> add_stream_specifier(stream_type: :audio)
+           |> add_stream_option(option_filter("volume=#{norm_vol}dB"))
+           |> add_stream_option(option_codec("libmp3lame"))
+           |> add_stream_option(option_qscale("3")),
+         :ok <- execute(convert_command) do
+      Nadia.send_audio(
+        chat_id,
+        output_file,
+        reply_to_message_id: msg_id,
+        title: "Converted from `#{file_name}`",
+        parse_mode: "Markdown"
+      )
+    else
+      other ->
+        Nadia.send_message(
+          chat_id,
+          """
+          Что-то пошло не так:
+          ```
+          #{inspect(other)}
+          """,
+          reply_to_message_id: msg_id,
+          parse_mode: "Markdown"
+        )
+    end
+  end
 end
-
-# 20:48:24.647 [debug] %Nadia.Model.Update{callback_query: nil, chosen_inline_result: nil, edited_message: nil, inline_query: nil, message: %Nadia.Model.Message{audio: nil, caption: nil, channel_chat_created: nil, chat: %Nadia.Model.Chat{first_name: nil, id: -1001115775506, last_name: nil, title: "Aperture Labs Test Facility", type: "supergroup", username: nil}, contact: nil, date: 1489870104, delete_chat_photo: nil, document: nil, edit_date: nil, entities: nil, forward_date: nil, forward_from: nil, forward_from_chat: nil, from: %Nadia.Model.User{first_name: "Alexander", id: 122247178, last_name: nil, username: "lattenwald"}, group_chat_created: nil, left_chat_member: %{first_name: "El Boto", id: 281074394, username: "lattenbot"}, location: nil, message_id: 1039, migrate_from_chat_id: nil, migrate_to_chat_id: nil, new_chat_member: nil, new_chat_photo: [], new_chat_title: nil, photo: [], pinned_message: nil, reply_to_message: nil, sticker: nil, supergroup_chat_created: nil, text: nil, venue: nil, video: nil, voice: nil}, update_id: 546229291}
-
-# 20:48:32.350 [debug] %Nadia.Model.Update{callback_query: nil, chosen_inline_result: nil, edited_message: nil, inline_query: nil, message: %Nadia.Model.Message{audio: nil, caption: nil, channel_chat_created: nil, chat: %Nadia.Model.Chat{first_name: nil, id: -1001115775506, last_name: nil, title: "Aperture Labs Test Facility", type: "supergroup", username: nil}, contact: nil, date: 1489870112, delete_chat_photo: nil, document: nil, edit_date: nil, entities: nil, forward_date: nil, forward_from: nil, forward_from_chat: nil, from: %Nadia.Model.User{first_name: "Alexander", id: 122247178, last_name: nil, username: "lattenwald"}, group_chat_created: nil, left_chat_member: nil, location: nil, message_id: 1040, migrate_from_chat_id: nil, migrate_to_chat_id: nil, new_chat_member: %{first_name: "El Boto", id: 281074394, username: "lattenbot"}, new_chat_photo: [], new_chat_title: nil, photo: [], pinned_message: nil, reply_to_message: nil, sticker: nil, supergroup_chat_created: nil, text: nil, venue: nil, video: nil, voice: nil}, update_id: 546229292}

@@ -3,7 +3,7 @@ defmodule Juggler.Mixfile do
 
   def project do
     [app: :juggler,
-     version: "0.1.6",
+     version: "0.2.0",
      elixir: "~> 1.7",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -34,7 +34,11 @@ defmodule Juggler.Mixfile do
     [
       {:nadia, "~> 0.4.4"},
       {:distillery, "~> 2.0"},
-      {:edeliver, "~> 1.6"}
+      {:edeliver, "~> 1.6"},
+      {:briefly, "~> 0.3.0"},
+      {:download, "~> 0.0.4"},
+      {:ffmpex, "~> 0.5.2"},
+      {:porcelain, "~> 2.0"}
       # {:edeliver, github: "lattenwald/edeliver"},
     ]
   end
