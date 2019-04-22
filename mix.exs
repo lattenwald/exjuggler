@@ -32,13 +32,15 @@ defmodule Juggler.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:nadia, "~> 0.4.4"},
+      {:nadia, git: "https://github.com/lattenwald/nadia.git"},
       {:distillery, "~> 2.0"},
       {:edeliver, "~> 1.6"},
       {:briefly, "~> 0.3.0"},
       {:download, "~> 0.0.4"},
-      {:ffmpex, "~> 0.5.2"},
-      {:porcelain, "~> 2.0"}
+      {:ffmpex, git: "https://github.com/lattenwald/ffmpex.git"},
+      {:porcelain, "~> 2.0"},
+      {:httpoison, "~> 1.5"},
+      {:poison, "~> 4.0"}
       # {:edeliver, github: "lattenwald/edeliver"},
     ]
   end

@@ -114,7 +114,7 @@ defmodule Juggler.Simple do
           chat: chat
         }
       )
-      when file_type in ["audio/x-wav", "audio/mpeg"] do
+      when file_type in ["audio/x-wav", "audio/mpeg", "audio/aac"] do
     from = from || chat
     spawn(__MODULE__, :convert_audio, [chat_id, msg_id, file_id, file_name, from])
   end
